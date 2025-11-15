@@ -24,8 +24,11 @@ def get_logs_params(
     last_time: Optional[str] = None,
     last_file: Optional[str] = None,
     connection: Optional[str] = None,
+    kind: Optional[str] = None,
 ) -> Dict:
     params = {}
+    if kind:
+        params["kind"] = kind
     if last_file:
         params["last_file"] = last_file
     if last_time:

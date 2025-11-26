@@ -782,12 +782,12 @@ class TestConfigParser(TestCase):
                     is_list=True,
                     is_optional=True,
                     default=[
-                        "Https://user:pass@siteweb.ca" "user2:pass@localhost:8080",
+                        "Https://user:pass@siteweb.causer2:pass@localhost:8080",
                     ],
                 )
             ],
             [
-                "Https://user:pass@siteweb.ca" "user2:pass@localhost:8080",
+                "Https://user:pass@siteweb.causer2:pass@localhost:8080",
             ],
         )
 

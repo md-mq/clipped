@@ -139,8 +139,9 @@ class ConfigSpec:
                     "please check that the name and tag are valid".format(hub)
                 )
             raise cls._SCHEMA_EXCEPTION(
-                "Config `{}` could not be fetched, "
-                "an error was encountered {}".format(hub, e)
+                "Config `{}` could not be fetched, an error was encountered {}".format(
+                    hub, e
+                )
             )
 
     @classmethod
@@ -232,7 +233,7 @@ class ConfigSpec:
                 return yaml.safe_load(f)
         except (ScannerError, ParserError) as e:
             raise cls._SCHEMA_EXCEPTION(
-                "Received non valid yaml: `%s`.\n" "Yaml error %s" % (f_path, e)
+                "Received non valid yaml: `%s`.\nYaml error %s" % (f_path, e)
             ) from e
 
     @classmethod
@@ -247,5 +248,5 @@ class ConfigSpec:
                 return orjson_loads(f.read())
         except ValueError as e:
             raise cls._SCHEMA_EXCEPTION(
-                "Received non valid json: `%s`.\n" "Json error %s" % (f_path, e)
+                "Received non valid json: `%s`.\nJson error %s" % (f_path, e)
             ) from e

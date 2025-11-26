@@ -42,9 +42,14 @@ class BaseSchemaMixin:
 
     @classmethod
     def get_aliases(cls):
+        # For pydantic v1/v2
+        items = {}
+        if isinstance(cls.model_fields, Mapping):
+            items = cls.model_fields
+        elif hasattr(cls, "__fields__"):
+            items = cls.__fields__
         return {
-            field_name: field_info.alias
-            for field_name, field_info in cls.model_fields.items()
+            field_name: field_info.alias for field_name, field_info in items.items()
         }
 
     @classmethod

@@ -208,6 +208,9 @@ else:
         def model_construct(cls, *args, **data):
             return cls.construct(*args, **data)
 
+        def model_copy(self):
+            return self.copy()
+
         def dict(self, *args, **kwargs) -> Dict:
             data = super().dict(*args, **kwargs)
             if hasattr(self, "_dump_obj"):

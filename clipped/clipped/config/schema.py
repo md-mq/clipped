@@ -41,13 +41,17 @@ class BaseSchemaMixin:
     _USE_DISCRIMINATOR: ClassVar = False
 
     @classmethod
-    def get_aliases(cls):
+    def get_model_fields(cls):
         # For pydantic v1/v2
-        items = {}
         if isinstance(cls.model_fields, Mapping):
-            items = cls.model_fields
+            return cls.model_fields
         elif hasattr(cls, "__fields__"):
-            items = cls.__fields__
+            return cls.__fields__
+        return {}
+
+    @classmethod
+    def get_aliases(cls):
+        items = cls.get_model_fields()
         return {
             field_name: field_info.alias for field_name, field_info in items.items()
         }

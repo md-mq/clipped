@@ -1,9 +1,25 @@
-from typing import Dict, Optional
+from typing import Dict, Optional, Set, Tuple
 
 try:
     import requests
 except ImportError:
     raise ImportError("This module depends on requests.")
+
+from clipped.utils.urls import validate_url
+
+# Default SSRF protection lists
+DEFAULT_BLOCKED_HOSTS: Set[str] = {
+    "localhost",
+    "127.0.0.1",
+    "0.0.0.0",
+    "169.254.169.254",  # AWS metadata
+    "metadata.google.internal",  # GCP metadata
+}
+DEFAULT_BLOCKED_PREFIXES: Tuple[str, ...] = (
+    "10.",
+    "172.16.",
+    "192.168.",
+)  # Private IP ranges
 
 
 def create_session(
@@ -45,8 +61,28 @@ def safe_request(
     verify_ssl: bool = True,
     session: Optional[requests.Session] = None,
     session_attrs: Optional[Dict] = None,
+    validate_url_security: bool = False,
+    blocked_hosts: Optional[Set[str]] = None,
+    blocked_prefixes: Optional[Tuple[str, ...]] = None,
 ) -> requests.Response:
-    """A slightly safer version of `request`."""
+    """A slightly safer version of `request`.
+
+    Args:
+        validate_url_security: If True, validates URL against SSRF attacks.
+        blocked_hosts: Set of blocked hostnames. Uses DEFAULT_BLOCKED_HOSTS if None
+            and validate_url_security is True.
+        blocked_prefixes: Tuple of blocked IP prefixes. Uses DEFAULT_BLOCKED_PREFIXES
+            if None and validate_url_security is True.
+    """
+    if validate_url_security:
+        hosts = blocked_hosts if blocked_hosts is not None else DEFAULT_BLOCKED_HOSTS
+        prefixes = (
+            blocked_prefixes
+            if blocked_prefixes is not None
+            else DEFAULT_BLOCKED_PREFIXES
+        )
+        if not validate_url(url, blocked_hosts=hosts, blocked_prefixes=prefixes):
+            raise ValueError(f"Invalid or blocked URL: {url}")
 
     session = create_session(session, session_attrs)
 

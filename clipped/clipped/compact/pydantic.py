@@ -9,7 +9,7 @@ if PYDANTIC_VERSION.startswith("2."):
     from pydantic import AnyUrl, BaseConfig
     from pydantic import BaseModel as _BaseModel
     from pydantic import ByteSize, ConfigDict, Field
-    from pydantic import FieldValidationInfo as ModelField
+    from pydantic import ValidationInfo as ModelField
     from pydantic import (
         FiniteFloat,
         FutureDate,

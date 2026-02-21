@@ -220,7 +220,7 @@ def untar_file(
     if use_filepath:
         extract_path = os.path.join(extract_path, filename.split(".tar.gz")[0])
     check_or_create_path(extract_path, is_dir=True)
-    _logger.info("Untarring the contents of the file ...")
+    _logger.info("Untarring the content of the file ...")
     # Untar the file
     with tarfile.open(filename) as tar:
         tar.extractall(extract_path)

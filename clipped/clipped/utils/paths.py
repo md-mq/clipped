@@ -221,8 +221,15 @@ def untar_file(
         extract_path = os.path.join(extract_path, filename.split(".tar.gz")[0])
     check_or_create_path(extract_path, is_dir=True)
     _logger.info("Untarring the content of the file ...")
-    # Untar the file
+    # Untar the file with path traversal protection
+    abs_extract = os.path.abspath(extract_path)
     with tarfile.open(filename) as tar:
+        for member in tar.getmembers():
+            member_path = os.path.abspath(os.path.join(abs_extract, member.name))
+            if not member_path.startswith(abs_extract + os.sep) and member_path != abs_extract:
+                raise ValueError(
+                    "Attempted path traversal in tar archive: {}".format(member.name)
+                )
         tar.extractall(extract_path)
     if delete_tar:
         _logger.info("Cleaning up the tar file ...")

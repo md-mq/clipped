@@ -11,6 +11,7 @@ from clipped.utils.paths import (
     delete_old_files,
     get_files_by_paths,
     get_files_in_path_context,
+    untar_file,
 )
 
 
@@ -128,3 +129,36 @@ class TestFiles(TestCase):
         assert deleted_count == 0
         assert deleted_files == []
         assert os.path.exists(fpath1)
+
+    def test_untar_file_normal(self):
+        """Test that normal tar extraction works."""
+        dirname = tempfile.mkdtemp()
+        tar_path = os.path.join(dirname, "test.tar.gz")
+        with tarfile.open(tar_path, "w:gz") as tar:
+            info = tarfile.TarInfo(name="hello.txt")
+            data = b"hello world"
+            info.size = len(data)
+            import io
+            tar.addfile(info, io.BytesIO(data))
+
+        extract_dir = os.path.join(dirname, "out")
+        os.makedirs(extract_dir)
+        untar_file(tar_path, extract_path=extract_dir, use_filepath=False)
+        assert os.path.exists(os.path.join(extract_dir, "hello.txt"))
+
+    def test_untar_file_rejects_path_traversal(self):
+        """Regression test: tar entries with ../ must be rejected."""
+        dirname = tempfile.mkdtemp()
+        tar_path = os.path.join(dirname, "evil.tar.gz")
+        with tarfile.open(tar_path, "w:gz") as tar:
+            info = tarfile.TarInfo(name="../../etc/evil.txt")
+            data = b"path traversal"
+            info.size = len(data)
+            import io
+            tar.addfile(info, io.BytesIO(data))
+
+        extract_dir = os.path.join(dirname, "out")
+        os.makedirs(extract_dir)
+        with self.assertRaises(ValueError) as ctx:
+            untar_file(tar_path, extract_path=extract_dir, use_filepath=False, delete_tar=False)
+        assert "path traversal" in str(ctx.exception).lower()

@@ -11,6 +11,7 @@ from clipped.utils.paths import (
     delete_old_files,
     get_files_by_paths,
     get_files_in_path_context,
+    untar_file,
 )
 
 
@@ -74,6 +75,47 @@ class TestFiles(TestCase):
         ) as files:
             assert len(files) == 3
             assert set(files) == {fpath1, fpath2, fpath3}
+
+    def test_untar_file_safe(self):
+        dirname = tempfile.mkdtemp()
+        filepath = os.path.join(dirname, "safe.tar.gz")
+        with tarfile.open(filepath, "w:gz") as tar:
+            data = b"hello"
+            info = tarfile.TarInfo(name="subdir/file.txt")
+            info.size = len(data)
+            tar.addfile(info, fileobj=__import__("io").BytesIO(data))
+        result = untar_file(filepath, extract_path=dirname, use_filepath=False)
+        assert os.path.isfile(os.path.join(dirname, "subdir", "file.txt"))
+        assert (
+            open(os.path.join(dirname, "subdir", "file.txt"), "rb").read() == b"hello"
+        )
+        assert result == dirname
+
+    def test_untar_file_blocks_traversal(self):
+        dirname = tempfile.mkdtemp()
+        filepath = os.path.join(dirname, "evil.tar.gz")
+        with tarfile.open(filepath, "w:gz") as tar:
+            data = b"pwned"
+            info = tarfile.TarInfo(name="../../../../../../tmp/pwned.txt")
+            info.size = len(data)
+            tar.addfile(info, fileobj=__import__("io").BytesIO(data))
+        with self.assertRaises(ValueError) as ctx:
+            untar_file(filepath, extract_path=dirname, use_filepath=False)
+        assert "outside the destination" in str(ctx.exception)
+        assert not os.path.exists("/tmp/pwned.txt")
+
+    def test_untar_file_blocks_absolute_path(self):
+        dirname = tempfile.mkdtemp()
+        filepath = os.path.join(dirname, "abs.tar.gz")
+        with tarfile.open(filepath, "w:gz") as tar:
+            data = b"pwned"
+            info = tarfile.TarInfo(name="/tmp/abs_pwned.txt")
+            info.size = len(data)
+            tar.addfile(info, fileobj=__import__("io").BytesIO(data))
+        with self.assertRaises(ValueError) as ctx:
+            untar_file(filepath, extract_path=dirname, use_filepath=False)
+        assert "outside the destination" in str(ctx.exception)
+        assert not os.path.exists("/tmp/abs_pwned.txt")
 
     def test_delete_files_older_than(self):
         dirname = tempfile.mkdtemp()

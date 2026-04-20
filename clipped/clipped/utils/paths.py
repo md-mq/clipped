@@ -1,6 +1,7 @@
 import logging
 import os
 import shutil
+import sys
 import tarfile
 import tempfile
 
@@ -210,6 +211,18 @@ def create_tarfile_from_path(
     os.remove(filename)
 
 
+def _safe_tar_members(tar: tarfile.TarFile, extract_path: str):
+    abs_dest = os.path.realpath(extract_path)
+    for member in tar.getmembers():
+        member_path = os.path.realpath(os.path.join(extract_path, member.name))
+        if not member_path.startswith(abs_dest + os.sep) and member_path != abs_dest:
+            raise ValueError(
+                "Tar member '{}' would be extracted to '{}', "
+                "which is outside the destination.".format(member.name, member_path)
+            )
+    return tar.getmembers()
+
+
 def untar_file(
     filename: Optional[str] = None,
     delete_tar: bool = True,
@@ -221,9 +234,12 @@ def untar_file(
         extract_path = os.path.join(extract_path, filename.split(".tar.gz")[0])
     check_or_create_path(extract_path, is_dir=True)
     _logger.info("Untarring the content of the file ...")
-    # Untar the file
     with tarfile.open(filename) as tar:
-        tar.extractall(extract_path)
+        members = _safe_tar_members(tar, extract_path)
+        kwargs = {"members": members}
+        if sys.version_info >= (3, 12):
+            kwargs["filter"] = "data"
+        tar.extractall(extract_path, **kwargs)
     if delete_tar:
         _logger.info("Cleaning up the tar file ...")
         os.remove(filename)

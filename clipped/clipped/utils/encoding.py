@@ -1,4 +1,8 @@
 import base64
+from typing import Optional, Union
+
+
+BytesLike = Union[bytes, bytearray, memoryview]
 
 
 def encode(value):
@@ -18,3 +22,21 @@ def urlsafe_b64decode(b64string):
         return payload.decode("utf-8")
     except Exception:  # noqa
         return payload
+
+
+def as_bytes(data: BytesLike) -> bytes:
+    """Coerce bytes/bytearray/memoryview to bytes; reject str."""
+    if isinstance(data, str):
+        raise TypeError("data must be bytes-like, not str")
+    if isinstance(data, memoryview):
+        return data.tobytes()
+    if isinstance(data, (bytes, bytearray)):
+        return bytes(data)
+    raise TypeError("data must be bytes-like")
+
+
+def b64_data(data: Optional[BytesLike]) -> Optional[str]:
+    """Base64-encode bytes-like input; return None if input is None."""
+    if data is None:
+        return None
+    return base64.b64encode(as_bytes(data)).decode("ascii")

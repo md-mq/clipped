@@ -1,7 +1,7 @@
-import sys
-
 from contextlib import contextmanager
+import sys
 from typing import Callable, List, Tuple
+
 
 NEWLINES = ("\n", "\r", "\r\n")
 INDENT_CHAR = " "

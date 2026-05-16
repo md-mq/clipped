@@ -2,6 +2,7 @@ from typing import TYPE_CHECKING, Any, Type
 
 from clipped.compact.pydantic import PYDANTIC_VERSION, AnyUrl
 
+
 if TYPE_CHECKING:
     from clipped.compact.pydantic import BaseConfig, ModelField
 

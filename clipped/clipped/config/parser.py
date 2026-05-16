@@ -1,5 +1,4 @@
 import logging
-
 from typing import Any, Callable, List, Optional, Type, TypeVar
 
 from clipped.compact.pydantic import (
@@ -15,6 +14,7 @@ from clipped.config.constants import NO_VALUE_FOUND
 from clipped.config.exceptions import SchemaError
 from clipped.decorators.memoization import memoize
 from clipped.utils.json import orjson_loads
+
 
 _logger = logging.getLogger("clipped.parser")
 

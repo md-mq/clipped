@@ -3,6 +3,7 @@ from typing import TYPE_CHECKING
 from clipped.compact.pydantic import PYDANTIC_VERSION
 from clipped.utils.lists import to_list
 
+
 if TYPE_CHECKING:
     from clipped.compact.pydantic import CallableGenerator
 

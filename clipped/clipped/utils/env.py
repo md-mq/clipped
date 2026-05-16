@@ -4,8 +4,8 @@ import os
 import platform
 import socket
 import sys
-
 from typing import List, Tuple
+
 
 _logger = logging.getLogger("clipped.utils.env")
 

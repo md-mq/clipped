@@ -1,5 +1,4 @@
 import datetime
-
 from unittest import TestCase
 
 from clipped.utils.humanize import humanize_timedelta, humanize_timesince

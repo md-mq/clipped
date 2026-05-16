@@ -1,15 +1,15 @@
+from contextlib import contextmanager
+from datetime import datetime, timedelta
 import logging
 import os
 import shutil
 import sys
 import tarfile
 import tempfile
-
-from contextlib import contextmanager
-from datetime import datetime, timedelta
 from typing import Any, List, Optional, Pattern, Tuple, Union
 
 from clipped.utils.lists import to_list
+
 
 _logger = logging.getLogger("clipped.utils.paths")
 

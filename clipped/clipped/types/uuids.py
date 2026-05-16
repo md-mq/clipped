@@ -3,6 +3,7 @@ from uuid import UUID
 
 from clipped.compact.pydantic import PYDANTIC_VERSION, StrictStr
 
+
 if TYPE_CHECKING:
     from clipped.compact.pydantic import CallableGenerator
 

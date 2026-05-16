@@ -1,10 +1,9 @@
-import os
-import sys
-import yaml
-
 from collections.abc import Mapping
+import os
 from requests import HTTPError
+import sys
 from typing import Any, Dict
+import yaml
 from yaml.parser import ParserError
 from yaml.scanner import ScannerError
 

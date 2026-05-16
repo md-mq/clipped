@@ -1,10 +1,8 @@
 import sys
+from typing import Dict, List, Optional, Union
 import yaml
 
-from typing import Dict, List, Optional, Union
-
 import click
-
 from rich import box
 from rich.console import Console
 from rich.live import Live

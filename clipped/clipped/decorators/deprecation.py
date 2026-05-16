@@ -1,6 +1,5 @@
 import functools
 import logging
-
 from typing import Optional, Tuple
 
 from clipped.utils.versions import compare_versions

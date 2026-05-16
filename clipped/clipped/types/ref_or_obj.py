@@ -10,6 +10,7 @@ from clipped.compact.pydantic import (
 )
 from clipped.config.constants import PARAM_REGEX
 
+
 if TYPE_CHECKING:
     from clipped.compact.pydantic import CallableGenerator
 

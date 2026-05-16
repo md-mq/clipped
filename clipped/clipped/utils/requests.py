@@ -1,11 +1,13 @@
 from typing import Dict, Optional, Set, Tuple
 
+
 try:
     import requests
 except ImportError:
     raise ImportError("This module depends on requests.")
 
 from clipped.utils.urls import validate_url
+
 
 # Default SSRF protection lists
 DEFAULT_BLOCKED_HOSTS: Set[str] = {

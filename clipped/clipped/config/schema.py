@@ -1,14 +1,17 @@
+from collections.abc import Mapping
 import functools
 import os
 import pprint
+from typing import Any, ClassVar, Dict, List, Optional, Set, Type, Union
 import yaml
 
-from collections.abc import Mapping
-from typing import Any, ClassVar, Dict, List, Optional, Set, Type, Union
-
-from clipped.compact.pydantic import BaseModel, PydanticAllowConfig, PydanticConfig
-from clipped.compact.pydantic import RootModel as BaseRootModel
-from clipped.compact.pydantic import create_model
+from clipped.compact.pydantic import (
+    BaseModel,
+    PydanticAllowConfig,
+    PydanticConfig,
+    RootModel as BaseRootModel,
+    create_model,
+)
 from clipped.config.exceptions import SchemaError
 from clipped.config.patch_strategy import PatchStrategy
 from clipped.config.spec import ConfigSpec

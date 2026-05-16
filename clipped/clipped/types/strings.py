@@ -4,6 +4,7 @@ from uuid import UUID
 from clipped.compact.pydantic import PYDANTIC_VERSION
 from clipped.utils.json import orjson_dumps
 
+
 if TYPE_CHECKING:
     from clipped.compact.pydantic import CallableGenerator
 

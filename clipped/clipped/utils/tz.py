@@ -1,9 +1,9 @@
-import pytz
-
 from datetime import datetime, timedelta
+import pytz
 from typing import Optional
 
 from dateutil.tz import tzlocal
+
 
 try:
     from django.utils.timezone import now as dj_now  # pylint:disable=import-error

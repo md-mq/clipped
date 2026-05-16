@@ -1,8 +1,7 @@
 import datetime
-import uuid
-
 from typing import Dict, List
 from unittest import TestCase
+import uuid
 
 from dateutil.tz import tzutc
 

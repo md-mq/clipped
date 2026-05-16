@@ -1,6 +1,5 @@
-import urllib.parse as urlparse
-
 from typing import Any, Dict
+import urllib.parse as urlparse
 from urllib.parse import parse_qs
 
 

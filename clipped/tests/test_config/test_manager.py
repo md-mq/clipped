@@ -1,6 +1,5 @@
-import os
-
 from mock import patch
+import os
 from unittest import TestCase
 
 from clipped.config.contexts import get_project_path

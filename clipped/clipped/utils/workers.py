@@ -1,11 +1,11 @@
 import asyncio
+from contextlib import asynccontextmanager, contextmanager
 import logging
 import os
 import signal
 import threading
-
-from contextlib import asynccontextmanager, contextmanager
 from typing import Generator, Optional
+
 
 _logger = logging.getLogger("clipped.workers")
 

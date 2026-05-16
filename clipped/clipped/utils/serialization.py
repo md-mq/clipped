@@ -8,6 +8,7 @@ from clipped.compact.pydantic import (
     uuid_validator,
 )
 
+
 date_serialize = lambda x: x.isoformat()
 date_deserialize = lambda x: parse_date(x)
 

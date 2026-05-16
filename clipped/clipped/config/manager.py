@@ -1,9 +1,8 @@
+from collections.abc import Mapping
 import logging
 import os
-import yaml
-
-from collections.abc import Mapping
 from typing import Any, Dict, Literal, Optional, Type
+import yaml
 
 from clipped.config.contexts import get_project_path, get_temp_path
 from clipped.config.reader import ConfigReader
@@ -11,6 +10,7 @@ from clipped.config.schema import BaseSchemaModel
 from clipped.utils.enums import PEnum
 from clipped.utils.json import orjson_dumps, orjson_loads
 from clipped.utils.paths import check_or_create_path
+
 
 _logger = logging.getLogger("clipped.config.manager")
 

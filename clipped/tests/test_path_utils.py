@@ -1,8 +1,7 @@
+from datetime import datetime, timedelta
 import os
 import tarfile
 import tempfile
-
-from datetime import datetime, timedelta
 from unittest import TestCase
 
 from clipped.utils.paths import (

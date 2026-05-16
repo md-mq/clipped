@@ -1,10 +1,10 @@
+from datetime import date, datetime, timedelta
 import os
 import pytz
-
-from datetime import date, datetime, timedelta
 from typing import Union
 
 from dateutil import parser as dt_parser
+
 
 epoch = datetime(1970, 1, 1, tzinfo=pytz.utc)
 

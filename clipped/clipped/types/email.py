@@ -1,8 +1,8 @@
 import re
-
 from typing import TYPE_CHECKING
 
 from clipped.compact.pydantic import PYDANTIC_VERSION, StrictStr, strict_str_validator
+
 
 if TYPE_CHECKING:
     from clipped.compact.pydantic import CallableGenerator

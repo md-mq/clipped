@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from clipped.utils.http import absolute_uri
+from clipped.utils.http import absolute_uri, to_ws_url
 
 
 class HttpTest(TestCase):
@@ -39,3 +39,13 @@ class HttpTest(TestCase):
             absolute_uri("test_url/with?special=characters", "test_host")
             == "http://test_host/test_url/with?special=characters"
         )
+
+    def test_to_ws_url(self):
+        assert to_ws_url("") is None
+        assert to_ws_url("http://host/path") == "ws://host/path"
+        assert (
+            to_ws_url("https://host/path?replay_bytes=20")
+            == "wss://host/path?replay_bytes=20"
+        )
+        assert to_ws_url("ws://host/path") == "ws://host/path"
+        assert to_ws_url("wss://host/path") == "wss://host/path"

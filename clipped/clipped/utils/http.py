@@ -32,6 +32,16 @@ def absolute_uri(
     return urljoin(clean_host(host) + "/", url.lstrip("/"))
 
 
+def to_ws_url(url: str) -> Optional[str]:
+    if not url:
+        return None
+    if url.startswith("https://"):
+        return "wss://" + url[len("https://") :]
+    if url.startswith("http://"):
+        return "ws://" + url[len("http://") :]
+    return url
+
+
 def add_notification_referrer_param(
     url: str, provider: str, is_absolute: bool = True
 ) -> Optional[Any]:

@@ -1,3 +1,4 @@
+from functools import wraps
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Type, TypeVar
 
 from clipped.utils.json import orjson_dumps, orjson_loads
@@ -39,7 +40,7 @@ if PYDANTIC_VERSION.startswith("2."):
         create_model,
         field_validator,
         model_validator,
-        validate_call,
+        validate_call as _validate_call,
     )
     from pydantic.deprecated.parse import Protocol, load_str_bytes
     from pydantic.deprecated.tools import NameFactory
@@ -143,7 +144,7 @@ else:
         create_model,
     )
     from pydantic import root_validator as model_validator
-    from pydantic import validate_arguments as validate_call
+    from pydantic import validate_arguments as _validate_call
     from pydantic import validator as field_validator
     from pydantic.datetime_parse import parse_date, parse_datetime, parse_duration
     from pydantic.fields import ModelField
@@ -233,3 +234,20 @@ else:
 
     if TYPE_CHECKING:
         from pydantic.typing import CallableGenerator
+
+
+def validate_call(func=None, **options):
+    def decorate(function):
+        validated = None
+
+        @wraps(function)
+        def wrapper(*args, **kwargs):
+            nonlocal validated
+            if validated is None:
+                validated = _validate_call(function, **options)
+            return validated(*args, **kwargs)
+
+        wrapper.raw_function = function
+        return wrapper
+
+    return decorate(func) if func is not None else decorate

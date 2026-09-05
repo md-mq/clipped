@@ -14,9 +14,9 @@ def coroutine(f: Callable):
 
 
 async def run_sync(func: Callable, *args, **kwargs):
-    import anyio
+    from anyio import to_thread
 
     if kwargs:  # pragma: no cover
         # run_sync doesn't accept 'kwargs', so bind them in here
         func = partial(func, **kwargs)
-    return await anyio.to_thread.run_sync(func, *args)
+    return await to_thread.run_sync(func, *args)

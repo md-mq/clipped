@@ -7,10 +7,10 @@ except ImportError:
 
 from datetime import datetime, timedelta
 from functools import partial
+import pytz
 from time import sleep
 
 import dateutil.tz
-import pytz
 
 from clipped._vendor.croniter import (
     CroniterBadCronError,

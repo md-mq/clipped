@@ -2,17 +2,17 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, print_function
 
+
 try:
     import unittest2 as unittest
 except ImportError:
     import unittest
 
-import os
-import sys
 from datetime import datetime
-from timeit import Timer
-
+import os
 import pytz
+import sys
+from timeit import Timer
 
 from clipped._vendor.croniter import croniter
 from tests.test_vendor.test_croniter import base

@@ -9,15 +9,16 @@ try:
 except ImportError:
     import unittest
 
+from datetime import datetime
 import os
 import time
-from datetime import datetime
 
 from clipped._vendor.croniter import (
     cron_m,
     croniter,
 )
 from tests.test_vendor.test_croniter import base
+
 
 ORIG_OVERFLOW32B_MODE = cron_m.OVERFLOW32B_MODE
 

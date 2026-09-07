@@ -15,9 +15,7 @@ class CoroutineTest(TestCase):
         to_thread = ModuleType("anyio.to_thread")
         to_thread.run_sync = AsyncMock(return_value=3)
 
-        with patch.dict(
-            sys.modules, {"anyio": anyio, "anyio.to_thread": to_thread}
-        ):
+        with patch.dict(sys.modules, {"anyio": anyio, "anyio.to_thread": to_thread}):
             result = asyncio.run(run_sync(operator.add, 1, 2))
 
         assert result == 3

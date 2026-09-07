@@ -1,10 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import unittest
 from datetime import datetime
-
 import pytz
+import unittest
 
 from clipped._vendor.croniter import (
     CroniterBadCronError,

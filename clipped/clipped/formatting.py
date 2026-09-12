@@ -228,14 +228,13 @@ class Printer:
         click.echo(value, nl=nl)
 
     @classmethod
-    def dict_tabulate(cls, dict_value: Dict, is_list_dict: bool = False):
-        if is_list_dict:
-            headers = dict_value[0].keys() if dict_value else []
-            table = cls.get_table(*headers)
-            for d in dict_value:
-                table.add_row(*d.values())
-            cls.print(table)
-        else:
+    def dict_tabulate(
+        cls,
+        dict_value: Dict,
+        is_list_dict: bool = False,
+        full_width_columns: Optional[List[str]] = None,
+    ):
+        if not is_list_dict:
             from rich import box
 
             from clipped.utils.humanize import humanize_attrs
@@ -244,3 +243,44 @@ class Printer:
             for k, v in dict_value.items():
                 table.add_row(k, humanize_attrs(k, v))
             cls.print(table)
+            return
+
+        headers = dict_value[0].keys() if dict_value else []
+        table = cls.get_table(*headers)
+        protected_columns = set(full_width_columns or []).intersection(headers)
+        if not protected_columns:
+            for d in dict_value:
+                table.add_row(*d.values())
+            cls.print(table)
+            return
+
+        for d in dict_value:
+            values = [
+                cls.console.render_str(value, highlight=False) for value in d.values()
+            ]
+            for value in values:
+                value.no_wrap = True
+            table.add_row(*values)
+
+        for header, column in zip(headers, table.columns):
+            column.header = cls.console.render_str(header, highlight=False)
+            column.header.no_wrap = True
+            # Allow other columns to shrink while their text still ellipsizes.
+            column.no_wrap = header in protected_columns
+            if column.no_wrap:
+                column.min_width = max(
+                    [column.header.cell_len] + [cell.cell_len for cell in column.cells]
+                )
+
+        padding_width = table.padding[1] + table.padding[3]
+        # Include the default table borders and padding, even on tiny terminals.
+        minimum_width = (
+            len(table.columns)
+            + 1
+            + sum(
+                (column.min_width or 1) + padding_width for column in table.columns
+            )
+        )
+        if cls.console.width < minimum_width:
+            table.width = minimum_width
+        cls.console.print(table, crop=False)

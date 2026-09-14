@@ -3,9 +3,11 @@ import pytest
 from unittest.mock import patch
 
 from rich.console import Console
+from rich.text import Text
 from rich.theme import Theme
 
 from clipped.formatting import Printer
+from clipped.utils.json import orjson_loads
 
 
 UUIDS = (
@@ -93,3 +95,41 @@ def test_full_width_columns_preserve_status_color():
 
     assert UUIDS[1] in output
     assert "\x1b[32msucceeded\x1b[0m" in output
+
+
+@pytest.mark.parametrize("is_list_dict", [False, True])
+def test_stderr_sections_preserve_json_stdout(is_list_dict, capsys):
+    Printer.pprint({"results": []})
+    Printer.heading("Context:", err=True)
+    fields = {"Owner": "owner", "Project": "project-a"}
+    Printer.dict_tabulate(
+        [fields] if is_list_dict else fields, is_list_dict=is_list_dict, err=True
+    )
+
+    captured = capsys.readouterr()
+    assert orjson_loads(captured.out) == {"results": []}
+    assert "Context:" in captured.err
+    assert "Owner" in captured.err
+    assert "owner" in captured.err
+    assert "Project" in captured.err
+    assert "project-a" in captured.err
+
+
+def test_sections_still_default_to_stdout(capsys):
+    Printer.heading("Run info:")
+    Printer.dict_tabulate({"uuid": "run-uuid"})
+
+    captured = capsys.readouterr()
+    assert captured.err == ""
+    assert "Run info:" in captured.out
+    assert "uuid" in captured.out
+    assert "run-uuid" in captured.out
+
+
+def test_dict_tabulate_preserves_styled_literal_values(capsys):
+    path = "/work/[red]/:rocket:/.polyaxon/.project"
+    Printer.dict_tabulate({"Source": Text(path, style="dim")}, err=True)
+
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert path in captured.err

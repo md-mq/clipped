@@ -3,8 +3,9 @@ from typing import Dict, List, Optional, Union
 
 
 class _LazyConsole:
-    def __init__(self):
+    def __init__(self, stderr: bool = False):
         self._console = None
+        self._stderr = stderr
 
     def __get__(self, instance, owner):
         if self._console is None:
@@ -23,6 +24,7 @@ class _LazyConsole:
                     }
                 ),
                 markup=True,
+                stderr=self._stderr,
             )
         return self._console
 
@@ -30,6 +32,7 @@ class _LazyConsole:
 class Printer:
     COLORS = ["yellow", "blue", "magenta", "green", "cyan", "red", "white"]
     console = _LazyConsole()
+    stderr_console = _LazyConsole(stderr=True)
 
     @staticmethod
     def get_progress():
@@ -119,9 +122,10 @@ class Printer:
         cls.console.print(text)
 
     @classmethod
-    def help(cls, command_help: Optional[str] = None):
+    def help(cls, command_help: Optional[str] = None, *, err: bool = False):
         if command_help:
-            cls.console.print(
+            console = cls.stderr_console if err else cls.console
+            console.print(
                 "Please run [white]`{} --help`[/white] for more details".format(
                     command_help
                 ),
@@ -129,18 +133,27 @@ class Printer:
             )
 
     @classmethod
-    def heading(cls, text: str):
-        cls.header("\n{}\n".format(text))
+    def heading(cls, text: str, *, err: bool = False):
+        cls.header("\n{}\n".format(text), err=err)
 
     @classmethod
-    def header(cls, text: str):
-        cls.console.print(text, style="header")
+    def header(cls, text: str, *, err: bool = False):
+        console = cls.stderr_console if err else cls.console
+        console.print(text, style="header")
 
     @classmethod
-    def warning(cls, text: str, command_help: Optional[str] = None):
-        cls.console.print(text, style="warning")
+    def warning(
+        cls,
+        text: str,
+        command_help: Optional[str] = None,
+        *,
+        err: bool = False,
+        markup: bool = True,
+    ):
+        console = cls.stderr_console if err else cls.console
+        console.print(text, style="warning", markup=markup)
         if command_help:
-            cls.help(command_help=command_help)
+            cls.help(command_help=command_help, err=err)
 
     @classmethod
     def success(cls, text: str):
@@ -165,8 +178,9 @@ class Printer:
         cls.console.print(text, style="white")
 
     @classmethod
-    def info(cls, text: str):
-        cls.console.print(text, style="info")
+    def info(cls, text: str, *, err: bool = False, markup: bool = True):
+        console = cls.stderr_console if err else cls.console
+        console.print(text, style="info", markup=markup)
 
     @staticmethod
     def add_log_color(value, color):
@@ -233,16 +247,20 @@ class Printer:
         dict_value: Dict,
         is_list_dict: bool = False,
         full_width_columns: Optional[List[str]] = None,
+        *,
+        err: bool = False,
     ):
+        console = cls.stderr_console if err else cls.console
         if not is_list_dict:
             from rich import box
+            from rich.text import Text
 
             from clipped.utils.humanize import humanize_attrs
 
             table = cls.get_table(show_header=False, padding=0, box=box.SIMPLE)
             for k, v in dict_value.items():
-                table.add_row(k, humanize_attrs(k, v))
-            cls.print(table)
+                table.add_row(k, v if isinstance(v, Text) else humanize_attrs(k, v))
+            console.print(table)
             return
 
         headers = dict_value[0].keys() if dict_value else []
@@ -251,19 +269,19 @@ class Printer:
         if not protected_columns:
             for d in dict_value:
                 table.add_row(*d.values())
-            cls.print(table)
+            console.print(table)
             return
 
         for d in dict_value:
             values = [
-                cls.console.render_str(value, highlight=False) for value in d.values()
+                console.render_str(value, highlight=False) for value in d.values()
             ]
             for value in values:
                 value.no_wrap = True
             table.add_row(*values)
 
         for header, column in zip(headers, table.columns):
-            column.header = cls.console.render_str(header, highlight=False)
+            column.header = console.render_str(header, highlight=False)
             column.header.no_wrap = True
             # Allow other columns to shrink while their text still ellipsizes.
             column.no_wrap = header in protected_columns
@@ -277,10 +295,8 @@ class Printer:
         minimum_width = (
             len(table.columns)
             + 1
-            + sum(
-                (column.min_width or 1) + padding_width for column in table.columns
-            )
+            + sum((column.min_width or 1) + padding_width for column in table.columns)
         )
-        if cls.console.width < minimum_width:
+        if console.width < minimum_width:
             table.width = minimum_width
-        cls.console.print(table, crop=False)
+        console.print(table, crop=False)

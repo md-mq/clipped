@@ -188,22 +188,32 @@ def unix_style_path(path) -> str:
 
 
 def create_tarfile(
-    files: List[str], tar_path: str, relative_to: Optional[str] = None
+    files: List[str],
+    tar_path: str,
+    relative_to: Optional[str] = None,
+    dereference: bool = False,
+    recursive: bool = True,
 ) -> None:
     """Create a tar file based on the list of files passed"""
-    with tarfile.open(tar_path, "w:gz") as tar:
+    with tarfile.open(tar_path, "w:gz", dereference=dereference) as tar:
         for f in files:
             arcname = os.path.relpath(f, relative_to) if relative_to else None
-            tar.add(f, arcname=arcname)
+            tar.add(f, arcname=arcname, recursive=recursive)
 
 
 @contextmanager
 def create_tarfile_from_path(
-    files: List[str], path_name: str, relative_to: Optional[str] = None
+    files: List[str],
+    path_name: str,
+    relative_to: Optional[str] = None,
+    dereference: bool = False,
+    recursive: bool = True,
 ) -> str:
     """Create a tar file based on the list of files passed"""
     fd, filename = tempfile.mkstemp(prefix=path_name, suffix=".tar.gz")
-    create_tarfile(files, filename, relative_to)
+    create_tarfile(
+        files, filename, relative_to, dereference=dereference, recursive=recursive
+    )
     yield filename
 
     # clear

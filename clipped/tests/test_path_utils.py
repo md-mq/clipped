@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 import os
+import pytest
 import tarfile
 import tempfile
 from unittest import TestCase
@@ -12,6 +13,55 @@ from clipped.utils.paths import (
     get_files_in_path_context,
     untar_file,
 )
+
+
+@pytest.mark.parametrize("dereference", [False, True])
+@pytest.mark.parametrize("recursive", [False, True])
+def test_create_tarfile_symlink_options(tmp_path, dereference, recursive):
+    source = tmp_path / "source"
+    source.mkdir()
+    (source / "content.txt").write_text("content")
+    directory_link = tmp_path / "directory-link"
+    directory_link.symlink_to("source", target_is_directory=True)
+    file_link = tmp_path / "file-link"
+    file_link.symlink_to("source/content.txt")
+
+    with create_tarfile_from_path(
+        [str(source), str(directory_link), str(file_link)],
+        "symlink-options",
+        relative_to=str(tmp_path),
+        dereference=dereference,
+        recursive=recursive,
+    ) as filename:
+        with tarfile.open(filename) as archive:
+            expected = {"source", "directory-link", "file-link"}
+            if recursive:
+                expected.add("source/content.txt")
+                if dereference:
+                    expected.add("directory-link/content.txt")
+            assert set(archive.getnames()) == expected
+            assert archive.getmember("directory-link").isdir() == dereference
+            assert archive.getmember("file-link").isfile() == dereference
+            if dereference:
+                assert archive.extractfile("file-link").read() == b"content"
+            else:
+                assert archive.getmember("directory-link").issym()
+                assert archive.getmember("file-link").linkname == "source/content.txt"
+
+
+def test_create_tarfile_symlink_defaults(tmp_path):
+    source = tmp_path / "source"
+    source.mkdir()
+    (source / "content.txt").write_text("content")
+    link = tmp_path / "link"
+    link.symlink_to("source", target_is_directory=True)
+
+    with create_tarfile_from_path(
+        [str(source), str(link)], "symlink-defaults", relative_to=str(tmp_path)
+    ) as filename:
+        with tarfile.open(filename) as archive:
+            assert set(archive.getnames()) == {"source", "source/content.txt", "link"}
+            assert archive.getmember("link").issym()
 
 
 class TestFiles(TestCase):

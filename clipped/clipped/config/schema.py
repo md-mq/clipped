@@ -230,7 +230,9 @@ class BaseSchemaMixin:
         for field in cls._CUSTOM_DUMP_FIELDS:
             _field = getattr(obj, field, None)
             if _field:
-                if isinstance(_field, list):
+                if isinstance(_field, str):
+                    data_dict[field] = _field
+                elif isinstance(_field, list):
                     data_dict.update({field: [f.obj_to_dict(f) for f in _field]})
                 elif isinstance(_field, Mapping):
                     data_dict.update(

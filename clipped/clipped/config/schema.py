@@ -1,4 +1,5 @@
 from collections.abc import Mapping
+from copy import deepcopy
 import functools
 import os
 import pprint
@@ -226,7 +227,7 @@ class BaseSchemaMixin:
             exclude_defaults=exclude_defaults,
             exclude_none=exclude_none,
         )
-        # Handle custom fields
+        # Our Pydantic v2 model_dump excludes these fields; serialize them here.
         for field in cls._CUSTOM_DUMP_FIELDS:
             _field = getattr(obj, field, None)
             if not _field:
@@ -254,7 +255,11 @@ class BaseSchemaMixin:
                 data_dict.update(
                     {
                         field: {
-                            k: v.obj_to_dict(v, exclude_none=exclude_none)
+                            k: (
+                                v.obj_to_dict(v, exclude_none=exclude_none)
+                                if isinstance(v, BaseSchemaMixin)
+                                else deepcopy(v)
+                            )
                             for k, v in _field.items()
                         }
                     }

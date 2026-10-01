@@ -1,5 +1,5 @@
 import json
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 from unittest import TestCase
 
 from clipped.compact.pydantic import Field
@@ -22,6 +22,12 @@ class AliasedParentSchema(BaseSchemaModel):
     _CUSTOM_DUMP_FIELDS = {"nested_child"}
 
     nested_child: Optional[ChildSchema] = Field(alias="nestedChild", default=None)
+
+
+class MappingSchema(BaseSchemaModel):
+    _CUSTOM_DUMP_FIELDS = {"mapping"}
+
+    mapping: Dict[str, Any]
 
 
 class TestSchemaDump(TestCase):
@@ -59,3 +65,48 @@ class TestSchemaDump(TestCase):
         parent = ParentSchema(children=[], mapping={})
 
         assert parent.to_dict(exclude_none=False) == {"children": [], "mapping": {}}
+
+    def test_plain_custom_mapping_does_not_share_nested_values_with_source(self):
+        source = {
+            "container": {"image": "busybox:1.37", "args": ["echo hello"]},
+            "ports": [8080],
+            "disabled": False,
+            "missing": None,
+        }
+        parent = MappingSchema(mapping=source)
+
+        payload = parent.to_dict(exclude_none=False)
+
+        assert payload == {"mapping": source}
+        payload["mapping"]["container"]["image"] = "changed:v2"
+        payload["mapping"]["container"]["args"].append("echo changed")
+        payload["mapping"]["ports"].append(9090)
+        assert parent.mapping["container"] == {
+            "image": "busybox:1.37",
+            "args": ["echo hello"],
+        }
+        assert parent.mapping["ports"] == [8080]
+
+    def test_custom_mapping_can_mix_schema_and_plain_values(self):
+        parent = MappingSchema(
+            mapping={
+                "schema": ChildSchema(value=None),
+                "plain": {"value": None},
+                "missing": None,
+            }
+        )
+
+        assert parent.to_dict(exclude_none=False) == {
+            "mapping": {
+                "schema": {"value": None},
+                "plain": {"value": None},
+                "missing": None,
+            }
+        }
+        assert parent.to_dict() == {
+            "mapping": {
+                "schema": {},
+                "plain": {"value": None},
+                "missing": None,
+            }
+        }

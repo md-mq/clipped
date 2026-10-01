@@ -229,17 +229,40 @@ class BaseSchemaMixin:
         # Handle custom fields
         for field in cls._CUSTOM_DUMP_FIELDS:
             _field = getattr(obj, field, None)
-            if _field:
-                if isinstance(_field, str):
-                    data_dict[field] = _field
-                elif isinstance(_field, list):
-                    data_dict.update({field: [f.obj_to_dict(f) for f in _field]})
-                elif isinstance(_field, Mapping):
-                    data_dict.update(
-                        {field: {k: v.obj_to_dict(v) for k, v in _field.items()}}
+            if not _field:
+                if (
+                    not exclude_none
+                    and (not exclude_unset or field in obj.model_fields_set)
+                    and (
+                        not exclude_defaults
+                        or _field != cls.get_model_fields()[field].default
                     )
-                else:
-                    data_dict.update({field: _field.obj_to_dict(_field)})
+                ):
+                    data_dict[cls.get_aliases().get(field) or field] = _field
+                continue
+            if isinstance(_field, str):
+                data_dict[field] = _field
+            elif isinstance(_field, list):
+                data_dict.update(
+                    {
+                        field: [
+                            f.obj_to_dict(f, exclude_none=exclude_none) for f in _field
+                        ]
+                    }
+                )
+            elif isinstance(_field, Mapping):
+                data_dict.update(
+                    {
+                        field: {
+                            k: v.obj_to_dict(v, exclude_none=exclude_none)
+                            for k, v in _field.items()
+                        }
+                    }
+                )
+            else:
+                data_dict.update(
+                    {field: _field.obj_to_dict(_field, exclude_none=exclude_none)}
+                )
 
         if include_kind and "kind" not in data_dict and hasattr(obj, "kind"):
             data_dict["kind"] = (

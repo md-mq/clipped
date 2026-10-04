@@ -1,6 +1,9 @@
+from copy import deepcopy
 import json
 from typing import Any, Dict, List, Optional
 from unittest import TestCase
+from unittest.mock import patch
+import yaml
 
 from clipped.compact.pydantic import Field
 from clipped.config.schema import BaseSchemaModel
@@ -110,3 +113,125 @@ class TestSchemaDump(TestCase):
                 "missing": None,
             }
         }
+
+
+class TestDumpPolicy(TestCase):
+    def test_default_null_rule_preserves_omissions_and_filters(self):
+        class Schema(ParentSchema):
+            _DUMP_POLICY = {"default": {"exclude_none": False}}
+
+        schema = Schema(child=None, children=[], mapping={})
+        expected = {"child": None, "children": [], "mapping": {}}
+
+        assert schema.to_dict() == expected
+        assert json.loads(schema.to_json()) == expected
+        assert yaml.safe_load(schema.to_yaml()) == expected
+        assert Schema().to_dict() == {}
+        assert Schema().to_dict(exclude_unset=False) == {
+            "child": None,
+            "children": None,
+            "mapping": None,
+        }
+        assert schema.to_dict(exclude_defaults=True) == {"children": [], "mapping": {}}
+
+    def test_policies_are_class_owned_and_named_purposes_ignore_defaults(self):
+        class Schema(ChildSchema):
+            _IDENTIFIER = "shared"
+            _DUMP_POLICY = {
+                "default": {"exclude_none": True},
+                "component_state": {"exclude_none": False},
+            }
+
+        class InheritedSchema(Schema):
+            pass
+
+        class CompactSchema(Schema):
+            _DUMP_POLICY = {"component_state": {"exclude_none": True}}
+
+        before = deepcopy(Schema._DUMP_POLICY)
+        for model in (Schema, InheritedSchema):
+            with self.subTest(model=model):
+                schema = model(value=None)
+                assert schema.to_dict(exclude_none=False) == {}
+                assert schema.to_dict(purpose="component_state") == {"value": None}
+                assert schema.to_dict(purpose="source") == {}
+                assert schema.to_dict(exclude_none=False, purpose="source") == {
+                    "value": None
+                }
+        assert (
+            CompactSchema(value=None).to_dict(
+                exclude_none=False, purpose="component_state"
+            )
+            == {}
+        )
+        assert Schema._DUMP_POLICY == before
+        assert BaseSchemaModel._DUMP_POLICY == {}
+
+    def test_purpose_reaches_custom_children_once_without_mutation(self):
+        class Schema(ChildSchema):
+            _DUMP_POLICY = {"component_state": {"exclude_none": False}}
+
+        child = Schema(value=None)
+        unset = Schema()
+        parent = ParentSchema(
+            child=child,
+            children=[child, unset],
+            mapping={"explicit": child, "unset": unset},
+        )
+        before_policy = deepcopy(Schema._DUMP_POLICY)
+        models = (parent, child, unset)
+        fields_sets = [model.model_fields_set.copy() for model in models]
+        expected = {
+            "child": {"value": None},
+            "children": [{"value": None}, {}],
+            "mapping": {"explicit": {"value": None}, "unset": {}},
+        }
+
+        for method in ("to_dict", "to_json"):
+            with self.subTest(method=method):
+                with patch.object(
+                    Schema, "obj_to_dict", wraps=Schema.obj_to_dict
+                ) as dump:
+                    payload = getattr(parent, method)(
+                        purpose="component_state",
+                        exclude_unset=False,
+                        exclude_defaults=True,
+                    )
+                if method == "to_json":
+                    payload = json.loads(payload)
+                assert payload == expected
+                assert dump.call_count == 5
+                dump.assert_any_call(
+                    child, exclude_none=True, purpose="component_state"
+                )
+                dump.assert_any_call(
+                    unset, exclude_none=True, purpose="component_state"
+                )
+                payload["child"]["value"] = "changed"
+                assert child.value is None
+                assert parent.to_dict() == {
+                    "child": {},
+                    "children": [{}, {}],
+                    "mapping": {"explicit": {}, "unset": {}},
+                }
+                assert [model.model_fields_set for model in models] == fields_sets
+                assert Schema._DUMP_POLICY == before_policy
+
+    def test_no_purpose_keeps_legacy_root_arguments(self):
+        schema = ChildSchema(value=None)
+        for method in ("to_dict", "to_json", "to_yaml"):
+            with self.subTest(method=method):
+                with patch.object(
+                    ChildSchema, "obj_to_dict", wraps=ChildSchema.obj_to_dict
+                ) as dump:
+                    getattr(schema, method)()
+
+                dump.assert_called_once_with(
+                    schema,
+                    humanize_values=False,
+                    include_kind=False,
+                    include_version=False,
+                    exclude_unset=True,
+                    exclude_none=True,
+                    exclude_defaults=False,
+                )

@@ -405,10 +405,15 @@ class BaseSchemaMixin:
         config: Union[Dict, "BaseSchemaModel"],
         values: Union[Dict, "BaseSchemaModel"],
         strategy: Optional[PatchStrategy] = None,
+        *,
+        fields: Optional[Set[str]] = None,
     ):
         strategy = strategy or PatchStrategy.POST_MERGE
+        keys = type(config).model_fields.keys()
+        if fields is not None:
+            keys = (key for key in keys if key in fields)
 
-        for key in type(config).model_fields.keys():
+        for key in keys:
             if key in cls._FIELDS_MANUAL_PATCH:
                 continue
 

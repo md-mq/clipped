@@ -6,6 +6,7 @@ from unittest.mock import patch
 import yaml
 
 from clipped.compact.pydantic import Field
+from clipped.config.patch_strategy import PatchStrategy
 from clipped.config.schema import BaseSchemaModel
 
 
@@ -31,6 +32,104 @@ class MappingSchema(BaseSchemaModel):
     _CUSTOM_DUMP_FIELDS = {"mapping"}
 
     mapping: Dict[str, Any]
+
+
+class PatchSchema(BaseSchemaModel):
+    _FIELDS_MANUAL_PATCH = ["protected"]
+
+    value: Optional[str] = None
+    tags: Optional[List[str]] = None
+    child: Optional[ChildSchema] = None
+    untouched: Optional[str] = None
+    protected: Optional[str] = None
+
+
+class TestSchemaPatch(TestCase):
+    def test_selected_fields_keep_existing_patch_strategies(self):
+        for strategy in PatchStrategy:
+            with self.subTest(strategy=strategy):
+                target = PatchSchema(
+                    value="base",
+                    tags=["base"],
+                    child=ChildSchema(value="base"),
+                    protected="base",
+                )
+                patch = PatchSchema(
+                    value="local",
+                    tags=["local"],
+                    child=ChildSchema(value="local"),
+                    untouched="local",
+                    protected="local",
+                )
+
+                result = PatchSchema.patch_obj(
+                    target,
+                    patch,
+                    strategy=strategy,
+                    fields={"value", "tags", "child", "protected"},
+                )
+
+                assert result is target
+                local_wins = strategy in (
+                    PatchStrategy.POST_MERGE,
+                    PatchStrategy.REPLACE,
+                )
+                assert result.value == ("local" if local_wins else "base")
+                assert result.child.value == ("local" if local_wins else "base")
+                expected_tags = {
+                    PatchStrategy.POST_MERGE: ["base", "local"],
+                    PatchStrategy.PRE_MERGE: ["local", "base"],
+                    PatchStrategy.REPLACE: ["local"],
+                    PatchStrategy.ISNULL: ["base"],
+                }[strategy]
+                assert result.tags == expected_tags
+                assert result.untouched is None
+                assert "untouched" not in result.model_fields_set
+                assert result.protected == "base"
+
+    def test_selected_fields_distinguish_null_empty_and_omitted_values(self):
+        for strategy in PatchStrategy:
+            for values in ({}, {"value": None, "tags": []}):
+                with self.subTest(strategy=strategy, values=values):
+                    target = PatchSchema(value="base", tags=["base"])
+
+                    result = PatchSchema.patch_obj(
+                        target,
+                        PatchSchema(**values),
+                        strategy=strategy,
+                        fields={"value", "tags"},
+                    )
+
+                    clears = bool(values) and strategy in (
+                        PatchStrategy.POST_MERGE,
+                        PatchStrategy.REPLACE,
+                    )
+                    assert result.value == (None if clears else "base")
+                    assert result.tags == (
+                        [] if values and strategy == PatchStrategy.REPLACE else ["base"]
+                    )
+
+    def test_empty_or_unknown_field_selection_does_not_patch(self):
+        for fields in (set(), {"unknown"}):
+            target = PatchSchema(value="base")
+            before = target.to_dict(exclude_none=False)
+
+            result = PatchSchema.patch_obj(
+                target, PatchSchema(value="local", untouched="local"), fields=fields
+            )
+
+            assert result is target
+            assert result.to_dict(exclude_none=False) == before
+
+    def test_omitting_field_selection_keeps_full_patch_behavior(self):
+        target = PatchSchema(value="base")
+
+        result = PatchSchema.patch_obj(
+            target, PatchSchema(value="local", untouched="local")
+        )
+
+        assert result.value == "local"
+        assert result.untouched == "local"
 
 
 class TestSchemaDump(TestCase):

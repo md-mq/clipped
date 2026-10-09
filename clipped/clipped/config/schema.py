@@ -36,7 +36,7 @@ class BaseSchemaMixin:
     _FIELDS_SAME_KIND_PATCH: ClassVar = []
     _FIELDS_DICT_PATCH: ClassVar = []
     _CUSTOM_DUMP_FIELDS: ClassVar = []
-    _DUMP_POLICY: ClassVar[Dict[str, Dict[str, bool]]] = {}
+    _KEEP_NONE: ClassVar = False
     _SWAGGER_FIELDS: ClassVar = []
     _SWAGGER_FIELDS_LISTS: ClassVar = ["tolerations", "host_aliases", "hostAliases"]
     _PARTIAL: ClassVar = False
@@ -115,14 +115,7 @@ class BaseSchemaMixin:
         exclude_unset: bool = True,
         exclude_none: bool = True,
         exclude_defaults: bool = False,
-        purpose: Optional[str] = None,
     ) -> Dict[str, Any]:
-        """Apply this class's null policy and propagate purpose to custom fields.
-
-        No purpose selects "default"; other purposes do not inherit it.
-        Unspecified null rules keep the supplied exclude_none value.
-        """
-        purpose_kwargs = {"purpose": purpose} if purpose is not None else {}
         obj = self.obj_to_dict(
             self,
             humanize_values=humanize_values,
@@ -131,7 +124,6 @@ class BaseSchemaMixin:
             exclude_unset=exclude_unset,
             exclude_none=exclude_none,
             exclude_defaults=exclude_defaults,
-            **purpose_kwargs,
         )
         return obj
 
@@ -162,9 +154,7 @@ class BaseSchemaMixin:
         exclude_unset: bool = True,
         exclude_none: bool = True,
         exclude_defaults: bool = False,
-        purpose: Optional[str] = None,
     ) -> str:
-        purpose_kwargs = {"purpose": purpose} if purpose is not None else {}
         obj = self.to_dict(
             humanize_values=humanize_values,
             include_kind=include_kind,
@@ -172,7 +162,6 @@ class BaseSchemaMixin:
             exclude_unset=exclude_unset,
             exclude_none=exclude_none,
             exclude_defaults=exclude_defaults,
-            **purpose_kwargs,
         )
         return orjson_dumps(obj)
 
@@ -230,13 +219,9 @@ class BaseSchemaMixin:
         exclude_unset: bool = True,
         exclude_none: bool = True,
         exclude_defaults: bool = False,
-        purpose: Optional[str] = None,
     ) -> Dict:
-        selected_purpose = "default" if purpose is None else purpose
-        policy = cls._DUMP_POLICY.get(selected_purpose, {})
-        exclude_none = policy.get("exclude_none", exclude_none)
-        purpose_kwargs = {"purpose": purpose} if purpose is not None else {}
-        child_options = {"exclude_none": exclude_none, **purpose_kwargs}
+        if cls._KEEP_NONE:
+            exclude_none = False
         humanized_attrs = cls.humanize_attrs(obj) if humanize_values else {}
         model_dump_fct = obj.model_dump if hasattr(obj, "model_dump") else obj.dict
         data_dict = model_dump_fct(
@@ -263,14 +248,18 @@ class BaseSchemaMixin:
                 data_dict[field] = _field
             elif isinstance(_field, list):
                 data_dict.update(
-                    {field: [f.obj_to_dict(f, **child_options) for f in _field]}
+                    {
+                        field: [
+                            f.obj_to_dict(f, exclude_none=exclude_none) for f in _field
+                        ]
+                    }
                 )
             elif isinstance(_field, Mapping):
                 data_dict.update(
                     {
                         field: {
                             k: (
-                                v.obj_to_dict(v, **child_options)
+                                v.obj_to_dict(v, exclude_none=exclude_none)
                                 if isinstance(v, BaseSchemaMixin)
                                 else deepcopy(v)
                             )
@@ -279,7 +268,9 @@ class BaseSchemaMixin:
                     }
                 )
             else:
-                data_dict.update({field: _field.obj_to_dict(_field, **child_options)})
+                data_dict.update(
+                    {field: _field.obj_to_dict(_field, exclude_none=exclude_none)}
+                )
 
         if include_kind and "kind" not in data_dict and hasattr(obj, "kind"):
             data_dict["kind"] = (

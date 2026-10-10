@@ -2,6 +2,8 @@ from unittest import TestCase
 
 from clipped.utils.units import (
     format_sizeof,
+    is_cpu_value,
+    is_memory_value,
     number_percentage_format,
     to_cpu_value,
     to_memory_bytes,
@@ -136,6 +138,20 @@ class ToPercentageTest(TestCase):
         self.assertEqual(to_memory_bytes("1ki"), 1024)
         self.assertEqual(to_memory_bytes("1mi"), 1048576)
         self.assertEqual(to_memory_bytes("1gi"), 1073741824)
+
+    def test_is_cpu_value(self):
+        for value in ("2", "0.5", ".5", "2.", "500m", "500u", "500n"):
+            assert is_cpu_value(value), value
+            to_cpu_value(value)
+        for value in ("", "m", "1k", "1M", "1e3", "1_000", "nan", "-1", "1 ", "١"):
+            assert not is_cpu_value(value), value
+
+    def test_is_memory_value(self):
+        for value in ("512", "1.5Gi", "1Ki", "1Ei", "1k", "1M", "1G", "1E"):
+            assert is_memory_value(value), value
+            assert to_memory_bytes(value) > 0
+        for value in ("", "Gi", "400m", "1mi", "1K", "1e3", "1_000", "-1", "١Gi"):
+            assert not is_memory_value(value), value
 
     def test_to_unit_memory(self):
         def validate(use_i: bool):

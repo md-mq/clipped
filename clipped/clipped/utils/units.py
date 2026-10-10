@@ -1,4 +1,23 @@
+import re
 from typing import Optional, Union
+
+
+# Quantities Kubernetes and the converters below read the same, up to sub-byte
+# rounding of fractional memory; the converters also accept forms Kubernetes
+# reads differently, e.g. memory 1m (milli vs mega).
+_NUMBER = r"(\d+(\.\d*)?|\.\d+)"
+_CPU_VALUE = re.compile(_NUMBER + r"[mun]?", re.ASCII)
+_MEMORY_VALUE = re.compile(_NUMBER + r"([KMGTPE]i|[kMGTPE])?", re.ASCII)
+
+
+def is_cpu_value(value: str) -> bool:
+    """Whether Kubernetes and to_cpu_value agree on a cpu string, e.g. 500m."""
+    return bool(_CPU_VALUE.fullmatch(value))
+
+
+def is_memory_value(value: str) -> bool:
+    """Whether Kubernetes and to_memory_bytes agree on a memory string."""
+    return bool(_MEMORY_VALUE.fullmatch(value))
 
 
 def _sanitize_value(value: Union[str, int, float]) -> Union[int, float]:

@@ -387,6 +387,9 @@ class BaseSchemaMixin:
             return current_value
         if PatchStrategy.is_replace(strategy):
             return value
+        if value is None:
+            # Like ordinary lists: post_merge clears, pre_merge keeps.
+            return None if PatchStrategy.is_post_merge(strategy) else current_value
 
         return cls.patch_normal_merge(current_value, value, strategy)
 
@@ -443,7 +446,8 @@ class BaseSchemaMixin:
             if not isinstance(current_value, BaseSchemaModel) and (
                 hasattr(current_value, "openapi_types") or key in cls._SWAGGER_FIELDS
             ):
-                if key in cls._SWAGGER_FIELDS_LISTS:  # Special case for lists
+                # Lists of swagger objects have no openapi_types to patch through.
+                if key in cls._SWAGGER_FIELDS_LISTS or isinstance(current_value, list):
                     setattr(
                         config,
                         key,

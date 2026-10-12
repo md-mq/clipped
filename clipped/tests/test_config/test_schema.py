@@ -42,6 +42,12 @@ class PatchSchema(BaseSchemaModel):
     protected: Optional[str] = None
 
 
+class SwaggerListSchema(BaseSchemaModel):
+    _SWAGGER_FIELDS = ["volumes"]
+
+    volumes: Optional[List[Dict[str, str]]] = None
+
+
 class TestSchemaPatch(TestCase):
     def test_selected_fields_keep_existing_patch_strategies(self):
         for strategy in PatchStrategy:
@@ -106,6 +112,33 @@ class TestSchemaPatch(TestCase):
                     assert result.tags == (
                         [] if values and strategy == PatchStrategy.REPLACE else ["base"]
                     )
+
+    def test_swagger_lists_outside_the_list_registry_patch_like_lists(self):
+        a, b = {"name": "a"}, {"name": "b"}
+        strategies = (
+            PatchStrategy.POST_MERGE,
+            PatchStrategy.PRE_MERGE,
+            PatchStrategy.REPLACE,
+            PatchStrategy.ISNULL,
+        )
+        # Expected results per strategy, in the order above.
+        for current, values, expected in (
+            ([a], {}, ([a], [a], [a], [a])),
+            ([a], {"volumes": None}, (None, [a], None, [a])),
+            ([a], {"volumes": []}, ([a], [a], [], [a])),
+            ([a], {"volumes": [b]}, ([a, b], [b, a], [b], [a])),
+            ([], {}, ([], [], [], [])),
+            ([], {"volumes": None}, (None, [], None, [])),
+            ([], {"volumes": []}, ([], [], [], [])),
+            ([], {"volumes": [b]}, ([b], [b], [b], [])),
+        ):
+            for strategy, result in zip(strategies, expected):
+                with self.subTest(current=current, values=values, strategy=strategy):
+                    target = SwaggerListSchema(volumes=current)
+                    patched = SwaggerListSchema.patch_obj(
+                        target, SwaggerListSchema(**values), strategy=strategy
+                    )
+                    assert patched.volumes == result
 
     def test_empty_or_unknown_field_selection_does_not_patch(self):
         for fields in (set(), {"unknown"}):
